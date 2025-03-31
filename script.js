@@ -74,25 +74,47 @@ document.addEventListener("mousemove", (event) => {
 function rotateFace(axis, index, direction) {
     const angle = Math.PI / 2 * direction;
     const selectedCubes = cubes.filter(cube => Math.round(cube.position[axis]) === index);
-    
+
     const group = new THREE.Group();
     selectedCubes.forEach(cube => {
         rubiksCube.remove(cube);
         group.add(cube);
     });
     rubiksCube.add(group);
-    
+
     new TWEEN.Tween(group.rotation)
         .to({ [axis]: group.rotation[axis] + angle }, 500)
         .easing(TWEEN.Easing.Quadratic.Out)
         .onComplete(() => {
+            // Mise à jour des positions et orientations après la rotation
             selectedCubes.forEach(cube => {
+                const pos = new THREE.Vector3(cube.position.x, cube.position.y, cube.position.z);
+                const rot = new THREE.Euler(cube.rotation.x, cube.rotation.y, cube.rotation.z);
+
+                // Appliquer la rotation sur la position et l'orientation
+                pos.applyAxisAngle(
+                    new THREE.Vector3(axis === "x" ? 1 : 0, axis === "y" ? 1 : 0, axis === "z" ? 1 : 0),
+                    angle
+                );
+                rot[axis] += angle;
+
+                // Ajuster les positions pour éviter les erreurs de flottants
+                cube.position.set(Math.round(pos.x * 100) / 100, Math.round(pos.y * 100) / 100, Math.round(pos.z * 100) / 100);
+                cube.rotation.set(
+                    Math.round(rot.x / (Math.PI / 2)) * (Math.PI / 2),
+                    Math.round(rot.y / (Math.PI / 2)) * (Math.PI / 2),
+                    Math.round(rot.z / (Math.PI / 2)) * (Math.PI / 2)
+                );
+
                 rubiksCube.add(cube);
             });
+
             rubiksCube.remove(group);
         })
         .start();
 }
+
+
 
 const buttons = [
     { label: "F", action: () => rotateFace('z', 1, 1) },
